@@ -60,6 +60,9 @@
     border-radius: 12px; background: #1F7A3E; color: #fff; font-weight: 700; text-decoration: none; }
   .centro { text-align: center; padding: 60px 20px; color: var(--cinza); }
   [hidden] { display: none !important; }
+  .pote { position: absolute; left: -5000px; width: 1px; height: 1px; overflow: hidden; }
+  .legal { text-align: center; font-size: 13px; color: var(--cinza); padding: 8px 20px 28px; }
+  .legal a { color: var(--verde); }
 </style>
 </head>
 <body>
@@ -88,6 +91,7 @@
     </section>
     <section>
       <h2>4. Seus dados</h2>
+      <label class="pote" aria-hidden="true">Site <input id="fSite" tabindex="-1" autocomplete="off"></label>
       <label>Nome <input id="fNome" autocomplete="name" placeholder="Como podemos te chamar?" maxlength="80"></label>
       <label>WhatsApp <input id="fWhats" type="tel" autocomplete="tel" inputmode="tel" placeholder="(64) 9 0000-0000" maxlength="20"></label>
       <div class="duas">
@@ -117,6 +121,8 @@
       <a class="whats" id="falar" target="_blank" rel="noopener" hidden>Falar com o estabelecimento no WhatsApp</a>
     </div>
   </main>
+  <p class="legal">Ao agendar, você concorda com os <a href="termos.html">Termos de uso</a> e a
+    <a href="privacidade.html">Política de privacidade</a>.</p>
 </div>
 
 <script type="module">
@@ -138,6 +144,7 @@
   const DIAS_LONGO = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
   const apelido = (new URLSearchParams(location.search).get('l') || location.hash.replace('#', '') || '').toLowerCase();
 
+  const abertoEm = Date.now();
   const estado = { lj: null, servicos: [], servico: null, dia: null, hora: null, ocupados: [] };
 
   const dinheiro = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: v % 1 ? 2 : 0 });
@@ -307,18 +314,22 @@
 
   $('confirmar').onclick = async () => {
     const nome = $('fNome').value.trim();
-    const whats = $('fWhats').value.trim();
+    const whats = $('fWhats').value.replace(/\D/g, '');
     const placa = $('fPlaca').value.trim().toUpperCase();
     const modelo = $('fModelo').value.trim();
     if (!nome) return mostrarErro('Digite seu nome.');
-    if (whats.replace(/\D/g, '').length < 10) return mostrarErro('Digite seu WhatsApp com DDD.');
+    if (whats.length < 10 || whats.length > 13) return mostrarErro('Digite seu WhatsApp com DDD.');
     if (!placa && !modelo) return mostrarErro('Informe a placa ou o modelo do veículo.');
     mostrarErro('');
+    // Armadilha para robôs: campo escondido preenchido ou envio rápido demais.
+    if ($('fSite').value) { $('form').hidden = true; $('sucesso').hidden = false; return; }
+    if (Date.now() - abertoEm < 4000) return mostrarErro('Confira seus dados e toque em confirmar de novo.');
 
     const s = estado.servico, data = chave(estado.dia), inicio = estado.hora, fim = inicio + s.minutos;
     const horario = data + '_' + inicio;
     const b = writeBatch(db);
     b.set(doc(db, 'lavajatos', apelido, 'ocupados', horario), { data, inicio, fim });
+    b.set(doc(db, 'lavajatos', apelido, 'limites', whats + '_' + data), { em: serverTimestamp() });
     b.set(doc(collection(db, 'lavajatos', apelido, 'agendamentos')), {
       horario, data, inicio, fim, nome, whats, placa, modelo,
       servicoId: s.id, servicoNome: s.nome, preco: s.preco ?? 0, negociavel: !!s.negociavel,
@@ -333,7 +344,8 @@
         .catch(() => {});
     } catch (e) {
       $('confirmar').textContent = 'Confirmar agendamento';
-      mostrarErro('Esse horário acabou de ser ocupado. Escolha outro, por favor.');
+      mostrarErro('Não deu para agendar. Esse horário pode ter acabado de ser ocupado, ou já existe um agendamento '
+        + 'com este WhatsApp nesse dia. Escolha outro horário ou fale com o estabelecimento.');
       escolherDia(estado.dia);
       return;
     }
