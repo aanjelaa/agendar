@@ -163,6 +163,10 @@
       const lj = await getDoc(doc(db, 'lavajatos', apelido));
       if (!lj.exists()) return problema('Não encontramos esse lava-jato. Confira o link.');
       estado.lj = lj.data();
+      if ((estado.lj.status || 'pendente') !== 'liberado') {
+        $('nome').textContent = estado.lj.nome || 'Lava-Jato';
+        return problema('Este lava-jato ainda não está recebendo agendamentos pelo link. Fale direto com eles.');
+      }
       const sv = await getDocs(collection(db, 'lavajatos', apelido, 'servicos'));
       estado.servicos = sv.docs.map((d) => ({ id: d.id, ...d.data() }))
         .filter((s) => s.ativo !== false)
