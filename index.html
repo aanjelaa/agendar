@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agendar lavagem</title>
+<meta name="theme-color" content="#0B6B63">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --fundo: #F3F5F4; --branco: #FFFFFF; --texto: #15211D; --cinza: #56635E; --linha: #DCE3E0;
+    --verde: #0B6B63; --verde-escuro: #08504A; --verde-claro: #E2F0EE; --ambar-fundo: #FCEBD0; --ambar: #6E3F04;
+    --vermelho: #A1291C;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--texto); font-family: 'Figtree', system-ui, sans-serif; }
+  .pagina { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--fundo); }
+  header { background: var(--verde); color: #fff; padding: 26px 20px 22px; }
+  header h1 { margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 23px; display: flex; gap: 10px; align-items: center; }
+  header p { margin: 6px 0 0; font-size: 14px; color: #D3ECE9; }
+  main { padding: 20px; display: flex; flex-direction: column; gap: 24px; }
+  h2 { margin: 0 0 10px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 18px; }
+  button { font-family: inherit; cursor: pointer; }
+  .servico { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 60px;
+    padding: 12px 14px; margin-bottom: 8px; border-radius: 12px; border: 1px solid var(--linha); background: var(--branco);
+    color: var(--texto); text-align: left; }
+  .servico[aria-pressed="true"] { background: var(--verde-claro); border: 2px solid var(--verde); padding: 11px 13px; }
+  .servico b { font-weight: 600; font-size: 15px; display: block; }
+  .servico small { font-size: 13px; color: var(--cinza); }
+  .servico .preco { font-weight: 700; font-size: 15px; white-space: nowrap; }
+  .dias { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .dia { flex: 0 0 auto; width: 62px; height: 66px; border-radius: 12px; border: 1px solid var(--linha); background: var(--branco);
+    color: var(--texto); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  .dia span { font-size: 12px; } .dia b { font-size: 18px; }
+  .dia[aria-pressed="true"] { background: var(--verde); color: #fff; border-color: var(--verde); }
+  .horas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .hora { height: 46px; border-radius: 10px; border: 1px solid var(--linha); background: var(--branco); color: var(--texto);
+    font-size: 15px; font-weight: 600; }
+  .hora[aria-pressed="true"] { background: var(--verde); color: #fff; border-color: var(--verde); }
+  .nota { font-size: 14px; color: var(--cinza); margin: 8px 0 0; }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+  input { height: 48px; border: 1px solid #C9D3CF; border-radius: 10px; padding: 0 12px; font-size: 16px; font-family: inherit;
+    background: var(--branco); color: var(--texto); min-width: 0; }
+  input:focus, button:focus-visible { outline: 3px solid #8FC7C0; outline-offset: 1px; }
+  .duas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .pagamento { background: var(--ambar-fundo); border-radius: 14px; padding: 14px 16px; display: flex; gap: 12px; }
+  .pagamento b { color: var(--ambar); display: block; }
+  .pagamento span { font-size: 14px; color: #4A3A22; line-height: 1.4; }
+  .resumo { background: var(--branco); border: 1px solid var(--linha); border-radius: 14px; padding: 14px 16px; }
+  .resumo .r { font-weight: 600; margin: 4px 0 12px; }
+  .confirmar { width: 100%; height: 54px; border: none; border-radius: 12px; background: var(--verde); color: #fff;
+    font-size: 16px; font-weight: 700; }
+  .confirmar:disabled { opacity: .55; cursor: default; }
+  .erro { color: var(--vermelho); font-size: 14px; margin: 10px 0 0; }
+  .feito { background: var(--branco); border-radius: 16px; padding: 24px 20px; text-align: center; border: 1px solid var(--linha); }
+  .feito h2 { font-size: 24px; margin-bottom: 8px; }
+  .feito p { margin: 6px 0; line-height: 1.45; }
+  .whats { display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; height: 50px; padding: 0 20px;
+    border-radius: 12px; background: #1F7A3E; color: #fff; font-weight: 700; text-decoration: none; }
+  .centro { text-align: center; padding: 60px 20px; color: var(--cinza); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="pagina">
+  <header>
+    <h1><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3 4 5 6.5 5 9a5 5 0 0 1-10 0c0-2.5 2-5 5-9z"/></svg><span id="nome">Carregando…</span></h1>
+    <p id="info"></p>
+  </header>
+
+  <div id="carregando" class="centro">Carregando…</div>
+  <div id="problema" class="centro" hidden></div>
+
+  <main id="form" hidden>
+    <section>
+      <h2>1. Escolha o serviço</h2>
+      <div id="servicos"></div>
+    </section>
+    <section>
+      <h2>2. Escolha o dia</h2>
+      <div class="dias" id="dias"></div>
+    </section>
+    <section>
+      <h2>3. Escolha o horário</h2>
+      <div class="horas" id="horas"></div>
+      <p class="nota" id="notaHoras"></p>
+    </section>
+    <section>
+      <h2>4. Seus dados</h2>
+      <label>Nome <input id="fNome" autocomplete="name" placeholder="Como podemos te chamar?" maxlength="80"></label>
+      <label>WhatsApp <input id="fWhats" type="tel" autocomplete="tel" inputmode="tel" placeholder="(64) 9 0000-0000" maxlength="20"></label>
+      <div class="duas">
+        <label>Placa <input id="fPlaca" placeholder="ABC1D23" maxlength="10" style="text-transform: uppercase"></label>
+        <label>Modelo <input id="fModelo" placeholder="Ex.: Onix prata" maxlength="60"></label>
+      </div>
+    </section>
+
+    <div class="pagamento">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A4F05" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;margin-top:1px"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20M6 15h4"/></svg>
+      <div><b>Pagamento só na entrega</b><span>Você não paga nada agora. Pague quando retirar o veículo: Pix, dinheiro ou cartão.</span></div>
+    </div>
+
+    <div class="resumo">
+      <div class="nota" style="margin:0">Resumo</div>
+      <div class="r" id="resumo">Escolha o serviço, o dia e o horário.</div>
+      <button class="confirmar" id="confirmar" disabled>Confirmar agendamento</button>
+      <p class="erro" id="erro" hidden></p>
+    </div>
+  </main>
+
+  <main id="sucesso" hidden>
+    <div class="feito">
+      <h2>Agendamento enviado!</h2>
+      <p id="sucessoTexto"></p>
+      <p class="nota">Pagamento só na entrega: Pix, dinheiro ou cartão.</p>
+      <a class="whats" id="falar" target="_blank" rel="noopener" hidden>Falar com o lava-jato no WhatsApp</a>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import { getFirestore, doc, getDoc, getDocs, collection, query, where, writeBatch, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+  // Dados do projeto no Firebase (Configurações do projeto → Seus apps → app Web → firebaseConfig)
+  const firebaseConfig = {
+    apiKey: 'AIzaSyB11rgRGMkA4t8NEziSgq9ZuMNok94vLuI',
+    authDomain: 'agenda-lavajato.firebaseapp.com',
+    projectId: 'agenda-lavajato',
+    appId: '1:243243968879:web:831f00d45a4a232d01e09a'
+  };
+
+  const db = getFirestore(initializeApp(firebaseConfig));
+  const $ = (id) => document.getElementById(id);
+  const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const DIAS_LONGO = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+  const apelido = (new URLSearchParams(location.search).get('l') || location.hash.replace('#', '') || '').toLowerCase();
+
+  const estado = { lj: null, servicos: [], servico: null, dia: null, hora: null, ocupados: [] };
+
+  const dinheiro = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: v % 1 ? 2 : 0 });
+  const hora = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  const duracao = (m) => m < 60 ? m + ' min' : Math.floor(m / 60) + 'h' + (m % 60 ? String(m % 60).padStart(2, '0') : '');
+  const chave = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const ddmm = (d) => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+  const funcionamento = (d) => {
+    const f = (estado.lj.horarios || {})[String(d.getDay())];
+    return f && typeof f.abre === 'number' ? [f.abre, f.fecha] : null;
+  };
+
+  function problema(msg) {
+    $('carregando').hidden = true;
+    $('form').hidden = true;
+    $('problema').hidden = false;
+    $('problema').textContent = msg;
+  }
+
+  async function iniciar() {
+    if (!apelido) return problema('Link incompleto. Peça o link de agendamento ao lava-jato.');
+    try {
+      const lj = await getDoc(doc(db, 'lavajatos', apelido));
+      if (!lj.exists()) return problema('Não encontramos esse lava-jato. Confira o link.');
+      estado.lj = lj.data();
+      const sv = await getDocs(collection(db, 'lavajatos', apelido, 'servicos'));
+      estado.servicos = sv.docs.map((d) => ({ id: d.id, ...d.data() }))
+        .filter((s) => s.ativo !== false)
+        .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+    } catch (e) {
+      return problema('Não conseguimos carregar. Confira sua internet e tente de novo.');
+    }
+    $('nome').textContent = estado.lj.nome || 'Lava-Jato';
+    document.title = 'Agendar · ' + (estado.lj.nome || 'Lava-Jato');
+    $('info').textContent = [estado.lj.endereco, estado.lj.telefone].filter(Boolean).join(' · ');
+    if (!estado.servicos.length) return problema('Este lava-jato ainda não cadastrou serviços.');
+    estado.servico = estado.servicos[0];
+    $('carregando').hidden = true;
+    $('form').hidden = false;
+    desenharServicos();
+    desenharDias();
+  }
+
+  function desenharServicos() {
+    const box = $('servicos');
+    box.replaceChildren();
+    for (const s of estado.servicos) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'servico';
+      b.setAttribute('aria-pressed', String(s === estado.servico));
+      const col = document.createElement('span');
+      const nome = document.createElement('b');
+      nome.textContent = s.nome;
+      const sub = document.createElement('small');
+      sub.textContent = (s.tipo === 'moto' ? 'Moto' : 'Carro') + ' · ' + duracao(s.minutos);
+      col.append(nome, sub);
+      const preco = document.createElement('span');
+      preco.className = 'preco';
+      preco.textContent = dinheiro(s.preco);
+      b.append(col, preco);
+      b.onclick = () => { estado.servico = s; estado.hora = null; desenharServicos(); desenharHoras(); };
+      box.append(b);
+    }
+  }
+
+  function desenharDias() {
+    const box = $('dias');
+    box.replaceChildren();
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    let primeiro = null;
+    for (let i = 0; i < 21; i++) {
+      const d = new Date(hoje);
+      d.setDate(hoje.getDate() + i);
+      if (!funcionamento(d)) continue;
+      if (!primeiro) primeiro = d;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'dia';
+      b.dataset.k = chave(d);
+      b.setAttribute('aria-label', (i === 0 ? 'Hoje, ' : '') + DIAS_LONGO[d.getDay()] + ' ' + ddmm(d));
+      const a = document.createElement('span');
+      a.textContent = i === 0 ? 'Hoje' : DIAS[d.getDay()];
+      const n = document.createElement('b');
+      n.textContent = d.getDate();
+      b.append(a, n);
+      b.onclick = () => escolherDia(d);
+      box.append(b);
+    }
+    if (primeiro) escolherDia(primeiro);
+    else $('notaHoras').textContent = 'Sem dias disponíveis no momento.';
+  }
+
+  async function escolherDia(d) {
+    estado.dia = d;
+    estado.hora = null;
+    for (const b of $('dias').children) b.setAttribute('aria-pressed', String(b.dataset.k === chave(d)));
+    $('horas').replaceChildren();
+    $('notaHoras').textContent = 'Carregando horários…';
+    try {
+      const q = await getDocs(query(collection(db, 'lavajatos', apelido, 'ocupados'), where('data', '==', chave(d))));
+      if (estado.dia !== d) return;
+      estado.ocupados = q.docs.map((x) => [x.data().inicio, x.data().fim]);
+    } catch (e) {
+      $('notaHoras').textContent = 'Não conseguimos carregar os horários. Confira sua internet.';
+      return;
+    }
+    desenharHoras();
+  }
+
+  function livres() {
+    const f = funcionamento(estado.dia);
+    if (!f || !estado.servico) return [];
+    const passo = estado.lj.passo || 30, dur = estado.servico.minutos, r = [];
+    const agora = new Date();
+    const ehHoje = chave(agora) === chave(estado.dia);
+    const agoraMin = agora.getHours() * 60 + agora.getMinutes();
+    for (let ini = f[0]; ini + dur <= f[1]; ini += passo) {
+      if (ehHoje && ini < agoraMin + 15) continue;
+      if (estado.ocupados.some(([a, b]) => ini < b && ini + dur > a)) continue;
+      r.push(ini);
+    }
+    return r;
+  }
+
+  function desenharHoras() {
+    const box = $('horas');
+    box.replaceChildren();
+    const lista = estado.dia ? livres() : [];
+    $('notaHoras').textContent = lista.length ? '' : 'Nenhum horário livre nesse dia para esse serviço. Tente outro dia.';
+    for (const m of lista) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'hora';
+      b.textContent = hora(m);
+      b.setAttribute('aria-pressed', String(m === estado.hora));
+      b.onclick = () => { estado.hora = m; desenharHoras(); };
+      box.append(b);
+    }
+    atualizarResumo();
+  }
+
+  function atualizarResumo() {
+    const s = estado.servico, d = estado.dia, h = estado.hora;
+    if (s && d && h != null) {
+      $('resumo').textContent = s.nome + ' · ' + DIAS[d.getDay()] + ' ' + ddmm(d) + ' às ' + hora(h) + ' · ' + dinheiro(s.preco);
+      $('confirmar').disabled = false;
+    } else {
+      $('resumo').textContent = 'Escolha o serviço, o dia e o horário.';
+      $('confirmar').disabled = true;
+    }
+  }
+
+  function mostrarErro(msg) {
+    $('erro').hidden = !msg;
+    $('erro').textContent = msg || '';
+  }
+
+  $('confirmar').onclick = async () => {
+    const nome = $('fNome').value.trim();
+    const whats = $('fWhats').value.trim();
+    const placa = $('fPlaca').value.trim().toUpperCase();
+    const modelo = $('fModelo').value.trim();
+    if (!nome) return mostrarErro('Digite seu nome.');
+    if (whats.replace(/\D/g, '').length < 10) return mostrarErro('Digite seu WhatsApp com DDD.');
+    if (!placa && !modelo) return mostrarErro('Informe a placa ou o modelo do veículo.');
+    mostrarErro('');
+
+    const s = estado.servico, data = chave(estado.dia), inicio = estado.hora, fim = inicio + s.minutos;
+    const horario = data + '_' + inicio;
+    const b = writeBatch(db);
+    b.set(doc(db, 'lavajatos', apelido, 'ocupados', horario), { data, inicio, fim });
+    b.set(doc(collection(db, 'lavajatos', apelido, 'agendamentos')), {
+      horario, data, inicio, fim, nome, whats, placa, modelo,
+      servicoId: s.id, servicoNome: s.nome, preco: s.preco,
+      status: 'novo', pagamento: null, origem: 'link', criadoEm: serverTimestamp()
+    });
+    $('confirmar').disabled = true;
+    $('confirmar').textContent = 'Enviando…';
+    try {
+      await b.commit();
+    } catch (e) {
+      $('confirmar').textContent = 'Confirmar agendamento';
+      mostrarErro('Esse horário acabou de ser ocupado. Escolha outro, por favor.');
+      escolherDia(estado.dia);
+      return;
+    }
+    $('form').hidden = true;
+    $('sucesso').hidden = false;
+    $('sucessoTexto').textContent = nome.split(' ')[0] + ', seu horário está reservado: ' + s.nome + ', '
+      + DIAS_LONGO[estado.dia.getDay()] + ' ' + ddmm(estado.dia) + ' às ' + hora(inicio) + '. Valor: ' + dinheiro(s.preco) + '.';
+    const tel = (estado.lj.telefone || '').replace(/\D/g, '');
+    if (tel.length >= 10) {
+      const t = tel.length <= 11 ? '55' + tel : tel;
+      const msg = 'Olá! Acabei de agendar pelo link: ' + s.nome + ', ' + ddmm(estado.dia) + ' às ' + hora(inicio) + '. Nome: ' + nome + '.';
+      $('falar').href = 'https://wa.me/' + t + '?text=' + encodeURIComponent(msg);
+      $('falar').hidden = false;
+    }
+    window.scrollTo(0, 0);
+  };
+
+  iniciar();
+</script>
+</body>
+</html>
