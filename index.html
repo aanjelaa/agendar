@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Agendar lavagem</title>
+<title>Agendar serviço</title>
 <meta name="theme-color" content="#0B6B63">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
@@ -114,14 +114,14 @@
       <h2>Agendamento enviado!</h2>
       <p id="sucessoTexto"></p>
       <p class="nota">Pagamento só na entrega: Pix, dinheiro ou cartão.</p>
-      <a class="whats" id="falar" target="_blank" rel="noopener" hidden>Falar com o lava-jato no WhatsApp</a>
+      <a class="whats" id="falar" target="_blank" rel="noopener" hidden>Falar com o estabelecimento no WhatsApp</a>
     </div>
   </main>
 </div>
 
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-  import { getFirestore, doc, getDoc, getDocs, collection, query, where, writeBatch, serverTimestamp }
+  import { getFirestore, doc, getDoc, getDocs, collection, query, where, writeBatch, serverTimestamp, setDoc, increment }
     from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   // Dados do projeto no Firebase (Configurações do projeto → Seus apps → app Web → firebaseConfig)
@@ -141,6 +141,10 @@
   const estado = { lj: null, servicos: [], servico: null, dia: null, hora: null, ocupados: [] };
 
   const dinheiro = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: v % 1 ? 2 : 0 });
+  // Preço do serviço: "R$ 70", "A partir de R$ 70" (negociável) ou "A combinar".
+  const precoTexto = (s) => s.negociavel ? (s.preco > 0 ? 'A partir de ' + dinheiro(s.preco) : 'A combinar') : dinheiro(s.preco || 0);
+  // Mês atual em UTC, igual ao do servidor: "m202610".
+  const chaveUso = () => { const a = new Date(); return 'm' + (a.getUTCFullYear() * 100 + a.getUTCMonth() + 1); };
   const hora = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
   const duracao = (m) => m < 60 ? m + ' min' : Math.floor(m / 60) + 'h' + (m % 60 ? String(m % 60).padStart(2, '0') : '');
   const chave = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -158,14 +162,14 @@
   }
 
   async function iniciar() {
-    if (!apelido) return problema('Link incompleto. Peça o link de agendamento ao lava-jato.');
+    if (!apelido) return problema('Link incompleto. Peça o link de agendamento ao estabelecimento.');
     try {
       const lj = await getDoc(doc(db, 'lavajatos', apelido));
-      if (!lj.exists()) return problema('Não encontramos esse lava-jato. Confira o link.');
+      if (!lj.exists()) return problema('Não encontramos esse estabelecimento. Confira o link.');
       estado.lj = lj.data();
       if ((estado.lj.status || 'pendente') !== 'liberado') {
-        $('nome').textContent = estado.lj.nome || 'Lava-Jato';
-        return problema('Este lava-jato ainda não está recebendo agendamentos pelo link. Fale direto com eles.');
+        $('nome').textContent = estado.lj.nome || 'Agendamento';
+        return problema('Este estabelecimento ainda não está recebendo agendamentos pelo link. Fale direto com eles.');
       }
       const sv = await getDocs(collection(db, 'lavajatos', apelido, 'servicos'));
       estado.servicos = sv.docs.map((d) => ({ id: d.id, ...d.data() }))
@@ -174,10 +178,10 @@
     } catch (e) {
       return problema('Não conseguimos carregar. Confira sua internet e tente de novo.');
     }
-    $('nome').textContent = estado.lj.nome || 'Lava-Jato';
-    document.title = 'Agendar · ' + (estado.lj.nome || 'Lava-Jato');
+    $('nome').textContent = estado.lj.nome || 'Agendamento';
+    document.title = 'Agendar · ' + (estado.lj.nome || 'Agendamento');
     $('info').textContent = [estado.lj.endereco, estado.lj.telefone].filter(Boolean).join(' · ');
-    if (!estado.servicos.length) return problema('Este lava-jato ainda não cadastrou serviços.');
+    if (!estado.servicos.length) return problema('Este estabelecimento ainda não cadastrou serviços.');
     estado.servico = estado.servicos[0];
     $('carregando').hidden = true;
     $('form').hidden = false;
@@ -201,7 +205,7 @@
       col.append(nome, sub);
       const preco = document.createElement('span');
       preco.className = 'preco';
-      preco.textContent = dinheiro(s.preco);
+      preco.textContent = precoTexto(s);
       b.append(col, preco);
       b.onclick = () => { estado.servico = s; estado.hora = null; desenharServicos(); desenharHoras(); };
       box.append(b);
@@ -288,7 +292,7 @@
   function atualizarResumo() {
     const s = estado.servico, d = estado.dia, h = estado.hora;
     if (s && d && h != null) {
-      $('resumo').textContent = s.nome + ' · ' + DIAS[d.getDay()] + ' ' + ddmm(d) + ' às ' + hora(h) + ' · ' + dinheiro(s.preco);
+      $('resumo').textContent = s.nome + ' · ' + DIAS[d.getDay()] + ' ' + ddmm(d) + ' às ' + hora(h) + ' · ' + precoTexto(s);
       $('confirmar').disabled = false;
     } else {
       $('resumo').textContent = 'Escolha o serviço, o dia e o horário.';
@@ -317,13 +321,16 @@
     b.set(doc(db, 'lavajatos', apelido, 'ocupados', horario), { data, inicio, fim });
     b.set(doc(collection(db, 'lavajatos', apelido, 'agendamentos')), {
       horario, data, inicio, fim, nome, whats, placa, modelo,
-      servicoId: s.id, servicoNome: s.nome, preco: s.preco,
+      servicoId: s.id, servicoNome: s.nome, preco: s.preco ?? 0, negociavel: !!s.negociavel,
       status: 'novo', pagamento: null, origem: 'link', criadoEm: serverTimestamp()
     });
     $('confirmar').disabled = true;
     $('confirmar').textContent = 'Enviando…';
     try {
       await b.commit();
+      // Só o número vai para o relatório da administradora; se falhar, não atrapalha o agendamento.
+      setDoc(doc(db, 'uso', apelido), { total: increment(1), meses: { [chaveUso()]: increment(1) } }, { merge: true })
+        .catch(() => {});
     } catch (e) {
       $('confirmar').textContent = 'Confirmar agendamento';
       mostrarErro('Esse horário acabou de ser ocupado. Escolha outro, por favor.');
@@ -333,7 +340,7 @@
     $('form').hidden = true;
     $('sucesso').hidden = false;
     $('sucessoTexto').textContent = nome.split(' ')[0] + ', seu horário está reservado: ' + s.nome + ', '
-      + DIAS_LONGO[estado.dia.getDay()] + ' ' + ddmm(estado.dia) + ' às ' + hora(inicio) + '. Valor: ' + dinheiro(s.preco) + '.';
+      + DIAS_LONGO[estado.dia.getDay()] + ' ' + ddmm(estado.dia) + ' às ' + hora(inicio) + '. Valor: ' + precoTexto(s) + '.';
     const tel = (estado.lj.telefone || '').replace(/\D/g, '');
     if (tel.length >= 10) {
       const t = tel.length <= 11 ? '55' + tel : tel;
