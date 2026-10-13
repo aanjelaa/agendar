@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orçamento</title>
+<meta name="theme-color" content="#0B6B63">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --fundo: #F3F5F4; --branco: #FFFFFF; --texto: #15211D; --cinza: #56635E; --linha: #DCE3E0;
+    --verde: #0B6B63; --verde-claro: #E2F0EE; --ambar-fundo: #FCEBD0; --ambar: #6E3F04;
+    --vermelho: #A1291C; --vermelho-fundo: #FBE4E1; --ok: #1F6A33; --ok-fundo: #D7EEDC;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--texto); font-family: 'Figtree', system-ui, sans-serif; }
+  .pagina { max-width: 520px; margin: 0 auto; min-height: 100vh; }
+  header { background: var(--verde); color: #fff; padding: 24px 20px 20px; }
+  header h1 { margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 22px; }
+  header p { margin: 4px 0 0; color: #D3ECE9; font-size: 14px; }
+  main { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  .cartao { background: var(--branco); border: 1px solid var(--linha); border-radius: 14px; padding: 16px; }
+  .cartao h2 { margin: 0 0 4px; font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; }
+  .sub { color: var(--cinza); font-size: 14px; margin: 0; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 10px 4px; border-bottom: 1px solid var(--linha); text-align: left; font-size: 15px; vertical-align: top; }
+  th { font-size: 12px; color: var(--cinza); font-weight: 600; }
+  td.v, th.v { text-align: right; white-space: nowrap; }
+  td small { display: block; color: var(--cinza); font-size: 12px; }
+  .total { display: flex; justify-content: space-between; align-items: center; background: var(--verde-claro);
+    border-radius: 12px; padding: 14px 16px; font-weight: 700; color: #08504A; }
+  .total b { font-size: 24px; font-family: 'Bricolage Grotesque', sans-serif; }
+  .situacao { border-radius: 12px; padding: 14px 16px; font-weight: 600; }
+  .s-enviado { background: var(--ambar-fundo); color: var(--ambar); }
+  .s-aprovado { background: var(--ok-fundo); color: var(--ok); }
+  .s-recusado { background: var(--vermelho-fundo); color: var(--vermelho); }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+  textarea { min-height: 80px; border: 1px solid #C9D3CF; border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 16px; }
+  button, .botao { font-family: inherit; font-size: 16px; font-weight: 700; height: 54px; border-radius: 12px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; text-decoration: none; width: 100%; }
+  .aprovar { background: var(--verde); color: #fff; border: none; }
+  .recusar { background: var(--branco); color: var(--vermelho); border: 1px solid #E3C3BE; }
+  .whats { background: #1F7A3E; color: #fff; border: none; }
+  button:disabled { opacity: .55; cursor: default; }
+  button:focus-visible, textarea:focus { outline: 3px solid #8FC7C0; outline-offset: 1px; }
+  .centro { text-align: center; padding: 60px 20px; color: var(--cinza); }
+  .legal { text-align: center; font-size: 13px; color: var(--cinza); padding: 8px 20px 28px; }
+  .legal a { color: var(--verde); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="pagina">
+  <header>
+    <h1 id="estab">Orçamento</h1>
+    <p id="subtitulo"></p>
+  </header>
+
+  <div id="carregando" class="centro">Carregando…</div>
+  <div id="problema" class="centro" hidden></div>
+
+  <main id="conteudo" hidden>
+    <div class="cartao">
+      <h2 id="servico"></h2>
+      <p class="sub" id="veiculo"></p>
+    </div>
+
+    <div class="cartao">
+      <table>
+        <thead><tr><th>Item</th><th class="v">Valor</th></tr></thead>
+        <tbody id="itens"></tbody>
+      </table>
+    </div>
+
+    <div class="total"><span>Total</span><b id="total"></b></div>
+
+    <div class="situacao" id="situacao" hidden></div>
+
+    <section id="responder" hidden>
+      <label>Comentário (opcional)
+        <textarea id="comentario" maxlength="500" placeholder="Ex.: Pode fazer, mas só com a peça original"></textarea>
+      </label>
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px">
+        <button class="aprovar" id="aprovar">Aprovar orçamento</button>
+        <button class="recusar" id="recusar">Recusar</button>
+      </div>
+      <p class="sub" style="margin-top: 10px">O pagamento é feito só na entrega do veículo.</p>
+    </section>
+
+    <a class="botao whats" id="falar" target="_blank" rel="noopener" hidden>Falar com o estabelecimento no WhatsApp</a>
+  </main>
+
+  <p class="legal"><a href="termos.html">Termos de uso</a> · <a href="privacidade.html">Política de privacidade</a></p>
+</div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import { getFirestore, doc, getDoc, updateDoc, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: 'AIzaSyB11rgRGMkA4t8NEziSgq9ZuMNok94vLuI',
+    authDomain: 'agenda-lavajato.firebaseapp.com',
+    projectId: 'agenda-lavajato',
+    appId: '1:243243968879:web:831f00d45a4a232d01e09a'
+  };
+  const db = getFirestore(initializeApp(firebaseConfig));
+  const $ = (id) => document.getElementById(id);
+  const codigo = new URLSearchParams(location.search).get('c') || '';
+  const dinheiro = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  let orc = null;
+
+  function problema(msg) {
+    $('carregando').hidden = true;
+    $('conteudo').hidden = true;
+    $('problema').hidden = false;
+    $('problema').textContent = msg;
+  }
+
+  function mostrarSituacao() {
+    const s = orc.status;
+    const box = $('situacao');
+    box.hidden = false;
+    box.className = 'situacao s-' + s;
+    $('responder').hidden = s !== 'enviado';
+    if (s === 'enviado') {
+      box.textContent = 'Confira os itens e responda abaixo.';
+    } else if (s === 'aprovado') {
+      box.textContent = 'Orçamento aprovado. Obrigado! O estabelecimento já foi avisado.';
+    } else if (s === 'recusado') {
+      box.textContent = 'Orçamento recusado. O estabelecimento já foi avisado e pode falar com você.';
+    } else {
+      box.className = 'situacao s-enviado';
+      box.textContent = 'Este orçamento está sendo revisado pelo estabelecimento. Aguarde um novo envio.';
+    }
+  }
+
+  async function iniciar() {
+    if (codigo.length < 16) return problema('Link incompleto. Peça o link do orçamento de novo ao estabelecimento.');
+    try {
+      const d = await getDoc(doc(db, 'orcamentos', codigo));
+      if (!d.exists()) return problema('Não encontramos este orçamento. Peça o link de novo ao estabelecimento.');
+      orc = d.data();
+    } catch (e) {
+      return problema('Não conseguimos carregar. Confira sua internet e tente de novo.');
+    }
+    $('estab').textContent = orc.nomeEstabelecimento || 'Orçamento';
+    $('subtitulo').textContent = 'Orçamento' + (orc.cliente ? ' para ' + orc.cliente : '');
+    document.title = 'Orçamento · ' + (orc.nomeEstabelecimento || '');
+    $('servico').textContent = orc.servico || 'Serviço';
+    $('veiculo').textContent = orc.veiculo || '';
+    const corpo = $('itens');
+    corpo.replaceChildren();
+    for (const it of (orc.itens || [])) {
+      const tr = document.createElement('tr');
+      const a = document.createElement('td');
+      a.textContent = it.desc || '';
+      const tipo = document.createElement('small');
+      tipo.textContent = it.tipo === 'mao' ? 'Mão de obra' : 'Peça';
+      a.append(tipo);
+      const b = document.createElement('td');
+      b.className = 'v';
+      b.textContent = dinheiro(it.valor);
+      tr.append(a, b);
+      corpo.append(tr);
+    }
+    $('total').textContent = dinheiro(orc.total);
+    const tel = (orc.telefoneEstabelecimento || '').replace(/\D/g, '');
+    if (tel.length >= 10) {
+      $('falar').href = 'https://wa.me/' + (tel.length <= 11 ? '55' + tel : tel);
+      $('falar').hidden = false;
+    }
+    $('carregando').hidden = true;
+    $('conteudo').hidden = false;
+    mostrarSituacao();
+  }
+
+  async function responder(status) {
+    $('aprovar').disabled = true;
+    $('recusar').disabled = true;
+    const comentario = $('comentario').value.trim().slice(0, 500);
+    const dados = { status, respondidoEm: serverTimestamp() };
+    if (comentario) dados.comentario = comentario;
+    try {
+      await updateDoc(doc(db, 'orcamentos', codigo), dados);
+      orc.status = status;
+      mostrarSituacao();
+      if (!$('falar').hidden) {
+        const msg = (status === 'aprovado' ? 'Olá! Aprovei o orçamento de ' : 'Olá! Recusei o orçamento de ')
+          + dinheiro(orc.total) + (comentario ? '. ' + comentario : '.');
+        $('falar').href = $('falar').href.split('?')[0] + '?text=' + encodeURIComponent(msg);
+      }
+    } catch (e) {
+      $('aprovar').disabled = false;
+      $('recusar').disabled = false;
+      alert('Não deu para enviar. Confira sua internet. Se continuar, o orçamento pode ter sido alterado: peça o link de novo.');
+    }
+  }
+
+  $('aprovar').onclick = () => responder('aprovado');
+  $('recusar').onclick = () => {
+    if (confirm('Recusar este orçamento?')) responder('recusado');
+  };
+
+  iniciar();
+</script>
+</body>
+</html>

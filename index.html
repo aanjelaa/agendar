@@ -332,7 +332,7 @@
     b.set(doc(db, 'lavajatos', apelido, 'limites', whats + '_' + data), { em: serverTimestamp() });
     b.set(doc(collection(db, 'lavajatos', apelido, 'agendamentos')), {
       horario, data, inicio, fim, nome, whats, placa, modelo,
-      servicoId: s.id, servicoNome: s.nome, preco: s.preco ?? 0, negociavel: !!s.negociavel,
+      servicoId: s.id, servicoNome: s.nome, preco: s.preco ?? 0, negociavel: !!s.negociavel, retornoMeses: s.retornoMeses || 0,
       status: 'novo', pagamento: null, origem: 'link', criadoEm: serverTimestamp()
     });
     $('confirmar').disabled = true;
